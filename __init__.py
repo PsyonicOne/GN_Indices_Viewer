@@ -18,12 +18,12 @@ from bpy.props import BoolProperty, StringProperty
 import bmesh
 
 bl_info = {
-    "name": "GN Indices",
+    "name": "GN Indices Viewer",
     "author": "Ash",
     "version": (1, 0),
     "blender": (2, 95, 0),
     "location": "View3D > View",
-    "description": "Display indices of selected items",
+    "description": "Display indices of active object",
     "warning": "",
     "doc_url": "",
     "category": "3D View",
@@ -44,7 +44,7 @@ class FakeModeSet(bpy.types.Operator):
 
 class VIEW_OT_GNIndexViewer(Operator):
     bl_idname = "view.gn_viewer"
-    bl_label = "GN Index Viewer"
+    bl_label = "GN Indices Viewer"
     bl_description = "See indices of verts, edges and faces simply"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
