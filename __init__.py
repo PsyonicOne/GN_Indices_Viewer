@@ -80,13 +80,18 @@ class VIEW_OT_GNIndexViewer(Operator):
                 for space in area.spaces:
                     if space.type == 'VIEW_3D':
                         self.show_extra_indices_old = space.overlay.show_extra_indices
-                        self.gizmo_object_rotate = space.show_gizmo_object_rotate
-                        self.gizmo_object_scale = space.show_gizmo_object_scale
-                        self.gizmo_object_translate = space.show_gizmo_object_translate
+                        self.gizmo_object_rotate_old = space.show_gizmo_object_rotate
+                        self.gizmo_object_scale_old = space.show_gizmo_object_scale
+                        self.gizmo_object_translate_old = space.show_gizmo_object_translate
                         space.overlay.show_extra_indices = True
                         space.show_gizmo_object_rotate = False
                         space.show_gizmo_object_scale = False
                         space.show_gizmo_object_translate = False
+
+        # check/set dev
+        if bpy.context.preferences.view.show_developer_ui is False:
+            self.show_developer_ui_old = bpy.context.preferences.view.show_developer_ui
+            bpy.context.preferences.view.show_developer_ui = True
 
         # make new collection to copy objects to
         self.gn_viewer_coll = bpy.data.collections.new("GN Viewer")
@@ -149,9 +154,11 @@ class VIEW_OT_GNIndexViewer(Operator):
                 for space in area.spaces:
                     if space.type == 'VIEW_3D':
                         space.overlay.show_extra_indices = self.show_extra_indices_old
-                        space.show_gizmo_object_rotate = self.gizmo_object_rotate
-                        space.show_gizmo_object_scale = self.gizmo_object_scale
-                        space.show_gizmo_object_translate = self.gizmo_object_translate
+                        space.show_gizmo_object_rotate = self.gizmo_object_rotate_old
+                        space.show_gizmo_object_scale = self.gizmo_object_scale_old
+                        space.show_gizmo_object_translate = self.gizmo_object_translate_old
+
+        bpy.context.preferences.view.show_developer_ui = self.show_developer_ui_old
 
         bpy.ops.object.mode_set(mode='OBJECT')
 
