@@ -20,7 +20,7 @@ import bmesh
 bl_info = {
     "name": "GN Indices Viewer",
     "author": "Ash",
-    "version": (1, 0),
+    "version": (0, 1),
     "blender": (2, 95, 0),
     "location": "View3D > View",
     "description": "Display indices of active object",
