@@ -74,6 +74,8 @@ class VIEW_OT_GNIndexViewer(Operator):
 
     def execute(self, context):
 
+        bpy.ops.object.mode_set(mode='OBJECT')
+
         # get/set overlay settings
         for area in context.screen.areas:
             if area.type == 'VIEW_3D':
@@ -89,8 +91,8 @@ class VIEW_OT_GNIndexViewer(Operator):
                         space.show_gizmo_object_translate = False
 
         # check/set dev
+        self.show_developer_ui_old = bpy.context.preferences.view.show_developer_ui
         if bpy.context.preferences.view.show_developer_ui is False:
-            self.show_developer_ui_old = bpy.context.preferences.view.show_developer_ui
             bpy.context.preferences.view.show_developer_ui = True
 
         # make new collection to copy objects to
@@ -123,7 +125,6 @@ class VIEW_OT_GNIndexViewer(Operator):
             # end viewing if RIGHTMOUSE or ESC
             if event.value == 'PRESS':
                 self.cleanup(context)
-                print("finished\n")
                 return {'FINISHED'}
             return {'PASS_THROUGH'}
 
