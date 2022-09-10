@@ -117,10 +117,14 @@ class VIEW_OT_GNIndexViewer(Operator):
 
         else:
             context.view_layer.objects.active = self.orig_obj
+
+            # if user removes object or collection, recreate it
             if "GN Viewer" not in bpy.data.collections.keys():
                 self.create_viewer_object(context, create="coll")
             if "GN Viewer" not in bpy.context.view_layer.objects.keys():
                 self.create_viewer_object(context, create="obj")
+
+            # if GN nodes change update object
             if context.scene.gn_viewer_update is True:
                 self.update_eval_obj()
                 context.scene.gn_viewer_update = False
@@ -134,6 +138,9 @@ class VIEW_OT_GNIndexViewer(Operator):
         self.bm_viewer.clear()
         self.bm_viewer.from_mesh(eval_mesh)
         bmesh.update_edit_mesh(self.gn_viewer_mesh)
+        # self.gn_viewer_object = self.copy_object_trans(self.gn_viewer_object, self.orig_obj)
+        self.gn_viewer_object.location = self.orig_obj.location
+        print("pos update:\n", self.gn_viewer_object.location)
 
     def create_viewer_object(self, context, create):
         # create object and collection
@@ -154,12 +161,14 @@ class VIEW_OT_GNIndexViewer(Operator):
             depsgraph = context.evaluated_depsgraph_get()
             self.gn_viewer_mesh = self.orig_obj.evaluated_get(depsgraph).data.copy()
             self.gn_viewer_object = bpy.data.objects.new("GN Viewer", self.gn_viewer_mesh)
-            self.gn_viewer_object = self.copy_object_trans(self.gn_viewer_object, self.orig_obj)
+            # self.gn_viewer_object = self.copy_object_trans(self.gn_viewer_object, self.orig_obj)
+            self.gn_viewer_object.location = self.orig_obj.location
+            print("pos create:\n", self.gn_viewer_object.location)
             self.gn_viewer_coll.objects.link(self.gn_viewer_object)
             self.gn_viewer_object.select_set(True)
             self.orig_obj.hide_set(False)
-            if create == "obj":
-                bpy.utils.unregister_class(FakeModeSet)
+            # if create == "obj":
+                # bpy.utils.unregister_class(FakeModeSet)
             bpy.ops.object.mode_set(mode="OBJECT")
             bpy.ops.object.editmode_toggle()
             self.orig_obj.hide_set(True)
@@ -167,29 +176,12 @@ class VIEW_OT_GNIndexViewer(Operator):
             if create == "first":
                 bpy.ops.mesh.select_mode(type="FACE")
                 bpy.ops.mesh.select_all(action="SELECT")
-            bpy.utils.register_class(FakeModeSet)
-
-    def copy_object_trans(self, obj, orig_obj):
-        #       obj: object to transform
-        # orig_obj : object to copy transforms from
-        # returns transformed obj
-
-        def get_sca_matrix(scale):
-            scale_mx = Matrix()
-            for i in range(3):
-                scale_mx[i][i] = scale[i]
-            return scale_mx
-
-        mx = orig_obj.matrix_world
-        loc, rot, sca = mx.decompose()
-        applymx = Matrix.Translation(loc) @ rot.to_matrix().to_4x4() @ get_sca_matrix(sca)
-        obj.data.transform(applymx)
-        return obj
+            # bpy.utils.register_class(FakeModeSet)
 
     def cleanup(self, context):
         # remove object and collection and enter object mode
 
-        bpy.utils.unregister_class(FakeModeSet)
+        # bpy.utils.unregister_class(FakeModeSet)
 
         # reset overlay settings
         for area in context.screen.areas:
