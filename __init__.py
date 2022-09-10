@@ -16,7 +16,6 @@ from bpy.types import Operator
 from bpy.types import Scene
 from bpy.props import BoolProperty, StringProperty
 import bmesh
-from mathutils import Matrix
 
 bl_info = {
     "name": "GN Indices Viewer",
@@ -167,8 +166,8 @@ class VIEW_OT_GNIndexViewer(Operator):
             self.gn_viewer_coll.objects.link(self.gn_viewer_object)
             self.gn_viewer_object.select_set(True)
             self.orig_obj.hide_set(False)
-            # if create == "obj":
-                # bpy.utils.unregister_class(FakeModeSet)
+            if create == "obj":
+                bpy.utils.unregister_class(FakeModeSet)
             bpy.ops.object.mode_set(mode="OBJECT")
             bpy.ops.object.editmode_toggle()
             self.orig_obj.hide_set(True)
@@ -176,12 +175,12 @@ class VIEW_OT_GNIndexViewer(Operator):
             if create == "first":
                 bpy.ops.mesh.select_mode(type="FACE")
                 bpy.ops.mesh.select_all(action="SELECT")
-            # bpy.utils.register_class(FakeModeSet)
+            bpy.utils.register_class(FakeModeSet)
 
     def cleanup(self, context):
         # remove object and collection and enter object mode
 
-        # bpy.utils.unregister_class(FakeModeSet)
+        bpy.utils.unregister_class(FakeModeSet)
 
         # reset overlay settings
         for area in context.screen.areas:
