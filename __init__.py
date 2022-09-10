@@ -16,6 +16,7 @@ from bpy.types import Operator
 from bpy.types import Scene
 from bpy.props import BoolProperty, StringProperty
 import bmesh
+from mathutils import Matrix
 
 bl_info = {
     "name": "GN Indices Viewer",
@@ -153,6 +154,7 @@ class VIEW_OT_GNIndexViewer(Operator):
             depsgraph = context.evaluated_depsgraph_get()
             self.gn_viewer_mesh = self.orig_obj.evaluated_get(depsgraph).data.copy()
             self.gn_viewer_object = bpy.data.objects.new("GN Viewer", self.gn_viewer_mesh)
+            self.gn_viewer_object = self.copy_object_trans(self.gn_viewer_object, self.orig_obj)
             self.gn_viewer_coll.objects.link(self.gn_viewer_object)
             self.gn_viewer_object.select_set(True)
             self.orig_obj.hide_set(False)
@@ -163,9 +165,26 @@ class VIEW_OT_GNIndexViewer(Operator):
             self.orig_obj.hide_set(True)
             self.bm_viewer = bmesh.from_edit_mesh(self.gn_viewer_mesh)
             if create == "first":
-                bpy.ops.mesh.select_mode(type='FACE')
-                bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.mesh.select_mode(type="FACE")
+                bpy.ops.mesh.select_all(action="SELECT")
             bpy.utils.register_class(FakeModeSet)
+
+    def copy_object_trans(self, obj, orig_obj):
+        #       obj: object to transform
+        # orig_obj : object to copy transforms from
+        # returns transformed obj
+
+        def get_sca_matrix(scale):
+            scale_mx = Matrix()
+            for i in range(3):
+                scale_mx[i][i] = scale[i]
+            return scale_mx
+
+        mx = orig_obj.matrix_world
+        loc, rot, sca = mx.decompose()
+        applymx = Matrix.Translation(loc) @ rot.to_matrix().to_4x4() @ get_sca_matrix(sca)
+        obj.data.transform(applymx)
+        return obj
 
     def cleanup(self, context):
         # remove object and collection and enter object mode
