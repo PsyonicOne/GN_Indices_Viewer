@@ -61,10 +61,9 @@ class VIEW_OT_GNIndexViewer(Operator):
 
     def __del__(self):
         # remove handler
-        bpy.app.handlers.depsgraph_update_post.remove(self.node_tree_changed_handler)
         try:
-            bpy.utils.unregister_class(FakeModeSet)
-        except ValueError:
+            bpy.app.handlers.depsgraph_update_post.remove(self.node_tree_changed_handler)
+        except RuntimeError:
             pass
 
     def __init__(self):
@@ -190,6 +189,10 @@ class VIEW_OT_GNIndexViewer(Operator):
 
     def cleanup(self, context):
         # remove object and collection and enter object mode
+        try:
+            bpy.utils.unregister_class(FakeModeSet)
+        except ValueError:
+            pass
 
         # reset overlay settings
         for area in context.screen.areas:
