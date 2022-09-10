@@ -62,10 +62,12 @@ class VIEW_OT_GNIndexViewer(Operator):
     def __del__(self):
         # remove handler
         bpy.app.handlers.depsgraph_update_post.remove(self.node_tree_changed_handler)
+        bpy.utils.unregister_class(FakeModeSet)
 
     def __init__(self):
         # stays active for life of session
         bpy.app.handlers.depsgraph_update_post.append(self.node_tree_changed_handler)
+        bpy.utils.unregister_class(FakeModeSet)
 
     def invoke(self, context, event):
         if context.view_layer.objects.active and context.view_layer.objects.active.type == "MESH":
@@ -179,8 +181,6 @@ class VIEW_OT_GNIndexViewer(Operator):
 
     def cleanup(self, context):
         # remove object and collection and enter object mode
-
-        bpy.utils.unregister_class(FakeModeSet)
 
         # reset overlay settings
         for area in context.screen.areas:
