@@ -11,19 +11,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+# Created by Ash
+# ash.c.1742@gmail.com
+
 import bpy
+import bmesh
 from bpy.types import Operator
 from bpy.types import Scene
 from bpy.props import BoolProperty, StringProperty
-import bmesh
 
 bl_info = {
     "name": "GN Indices Viewer",
     "author": "Ash",
-    "version": (0, 2),
+    "version": (0, 3),
     "blender": (2, 95, 0),
     "location": "View3D > View",
-    "description": "Display indices of active object",
+    "description": "Display indices of the active object",
     "warning": "",
     "doc_url": "",
     "category": "3D View",
@@ -35,8 +38,9 @@ class FakeModeSet(bpy.types.Operator):
 
     bl_idname = "object.mode_set"
     bl_label = "Fake Mode Set Operator to lock current mode"
-    mode: StringProperty()  # So it doesn't get angry when buttons from UI
-    toggle: BoolProperty()  # try to pass stuff to it
+
+    mode: StringProperty()
+    toggle: BoolProperty()
 
     def execute(self, context):
         return {"FINISHED"}
@@ -45,14 +49,14 @@ class FakeModeSet(bpy.types.Operator):
 class VIEW_OT_GNIndexViewer(Operator):
     bl_idname = "view.gn_viewer"
     bl_label = "GN Indices Viewer"
-    bl_description = "See indices of verts, edges and faces simply"
+    bl_description = "View indices of verts, edges and faces simply"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_options = {"BLOCKING"}
 
     @classmethod
     def poll(cls, context):
-        return context.area.type == "VIEW_3D"
+        return bpy.context.active_object.mode == "OBJECT"
 
     def node_tree_changed_handler(self, scene, depsgraph):
         # create scene update handler
@@ -106,16 +110,16 @@ class VIEW_OT_GNIndexViewer(Operator):
 
         # get active object, create viewer object
         self.orig_obj = context.view_layer.objects.active
-        self.create_viewer_object(context, create="first")
+        self.create_viewer_object(context)
 
         context.scene.gn_viewer_update = False
-        bpy.context.workspace.status_text_set_internal("Select item to view index number - Right click or ESC to end")
+        context.area.header_text_set("Select item to view index number - Right click or ESC to end")
 
         return {"FINISHED"}
 
     def modal(self, context, event):
 
-        if event.type == "RIGHTMOUSE" or event.type == "ESC":
+        if event.type in {"RIGHTMOUSE", "ESC"}:
             # end viewing if RIGHTMOUSE or ESC
             if event.value == "PRESS":
                 self.cleanup(context)
@@ -123,18 +127,28 @@ class VIEW_OT_GNIndexViewer(Operator):
 
         else:
             context.view_layer.objects.active = self.orig_obj
-
-            # if user removes object or collection, recreate it
-            if "GN Viewer" not in bpy.data.collections.keys():
-                self.create_viewer_object(context, create="coll")
-            if "GN Viewer" not in bpy.context.view_layer.objects.keys():
-                self.create_viewer_object(context, create="obj")
+            if self.check_area(context, event.mouse_x, event.mouse_y):
+                return {"RUNNING_MODAL"}
+            if self.orig_obj.hide_get() is False:
+                self.orig_obj.hide_set(True)
 
             # if GN nodes change update object
             if context.scene.gn_viewer_update is True:
                 self.update_eval_obj()
                 context.scene.gn_viewer_update = False
             return {"PASS_THROUGH"}
+
+    def check_area(self, context, mouse_x, mouse_y):
+        found = False
+        for area in context.screen.areas:
+            if area.type != "OUTLINER":
+                continue
+            if mouse_x >= area.x and mouse_x >= area.y and mouse_x < area.width + area.x and mouse_y < area.height + area.y:
+                found = True
+        if found is True:
+            return True
+        else:
+            return False
 
     def update_eval_obj(self):
         # update evaluated object
@@ -143,49 +157,34 @@ class VIEW_OT_GNIndexViewer(Operator):
 
         self.bm_viewer.clear()
         self.bm_viewer.from_mesh(eval_mesh)
-        bmesh.update_edit_mesh(self.gn_viewer_mesh)
-        # self.gn_viewer_object = self.copy_object_trans(self.gn_viewer_object, self.orig_obj)
         self.gn_viewer_object.location = self.orig_obj.location
-        print("pos update:\n", self.gn_viewer_object.location)
+        self.gn_viewer_object.rotation_euler = self.orig_obj.rotation_euler
+        self.gn_viewer_object.scale = self.orig_obj.scale
+        bmesh.update_edit_mesh(self.gn_viewer_mesh)
 
-    def create_viewer_object(self, context, create):
-        # create object and collection
-        # - first time at run
-        # - if user deletes it
-
+    def create_viewer_object(self, context):
         # make new collection to put object in
-        if create == "coll" or create == "first":
-            self.gn_viewer_coll = bpy.data.collections.new("GN Viewer")
-            context.scene.collection.children.link(self.gn_viewer_coll)
-            if create == "coll":
-                context.scene.collection.objects.unlink(self.gn_viewer_object)
-                self.gn_viewer_coll.objects.link(self.gn_viewer_object)
-                self.gn_viewer_object.select_set(True)
-
-        # get evaluated mesh and create object
-        if create == "obj" or create == "first":
-            depsgraph = context.evaluated_depsgraph_get()
-            self.gn_viewer_mesh = self.orig_obj.evaluated_get(depsgraph).data.copy()
-            self.gn_viewer_object = bpy.data.objects.new("GN Viewer", self.gn_viewer_mesh)
-            # self.gn_viewer_object = self.copy_object_trans(self.gn_viewer_object, self.orig_obj)
-            self.gn_viewer_object.location = self.orig_obj.location
-            print("pos create:\n", self.gn_viewer_object.location)
-            self.gn_viewer_coll.objects.link(self.gn_viewer_object)
-            self.gn_viewer_object.select_set(True)
-            self.orig_obj.hide_set(False)
-            if create == "obj":
-                bpy.utils.unregister_class(FakeModeSet)
-            bpy.ops.object.mode_set(mode="OBJECT")
-            bpy.ops.object.editmode_toggle()
-            self.orig_obj.hide_set(True)
-            self.bm_viewer = bmesh.from_edit_mesh(self.gn_viewer_mesh)
-            if create == "first":
-                bpy.ops.mesh.select_mode(type="FACE")
-                bpy.ops.mesh.select_all(action="SELECT")
-            try:
-                bpy.utils.register_class(FakeModeSet)
-            except ValueError:
-                pass
+        self.gn_viewer_coll = bpy.data.collections.new("GN Viewer")
+        context.scene.collection.children.link(self.gn_viewer_coll)
+        depsgraph = context.evaluated_depsgraph_get()
+        self.gn_viewer_mesh = self.orig_obj.evaluated_get(depsgraph).data.copy()
+        self.gn_viewer_object = bpy.data.objects.new("GN Viewer", self.gn_viewer_mesh)
+        self.gn_viewer_object.location = self.orig_obj.location
+        self.gn_viewer_object.rotation_euler = self.orig_obj.rotation_euler
+        self.gn_viewer_object.scale = self.orig_obj.scale
+        self.gn_viewer_coll.objects.link(self.gn_viewer_object)
+        self.gn_viewer_object.select_set(True)
+        self.orig_obj.hide_set(False)
+        bpy.ops.object.editmode_toggle()
+        self.bm_viewer = bmesh.from_edit_mesh(self.gn_viewer_mesh)
+        self.orig_obj.hide_set(True)
+        bpy.ops.mesh.select_mode(type="FACE")
+        bpy.ops.mesh.select_all(action="SELECT")
+        try:
+            bpy.utils.register_class(FakeModeSet)
+            print("register_class(FakeModeSet)")
+        except ValueError:
+            pass
 
     def cleanup(self, context):
         # remove object and collection and enter object mode
@@ -220,12 +219,9 @@ class VIEW_OT_GNIndexViewer(Operator):
         self.orig_obj.select_set(True)
         context.view_layer.objects.active = self.orig_obj
 
-        # bpy.ops.object.mode_set(mode="OBJECT")
         bpy.ops.object.editmode_toggle()
 
-        bpy.context.workspace.status_text_set_internal(None)
-
-        print("Clensed")
+        context.area.header_text_set(None)
 
 
 def add_menu(self, context):
