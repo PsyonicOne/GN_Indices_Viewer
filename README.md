@@ -2,7 +2,7 @@
 View indices of an object modified with Geometry Nodes
 
 ## Install:
-Add to Blender addons the usual way of course
+Add to Blender addons the usual way
 
 ## Use:
 A new operator called **GN Index Viewer** will be located in the **View** menu
