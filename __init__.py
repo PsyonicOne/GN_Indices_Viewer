@@ -64,7 +64,7 @@ class VIEW_OT_GNIndexViewer(Operator):
             scene.gn_viewer_update = True
 
     def __del__(self):
-        # remove handler
+        # remove handler now
         try:
             bpy.app.handlers.depsgraph_update_post.remove(self.node_tree_changed_handler)
         except RuntimeError:
